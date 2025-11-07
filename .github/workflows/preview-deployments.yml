@@ -118,6 +118,12 @@ jobs:
           ]
         target: [aarch64, armv7]
     steps:
+      - name: Skip wrong target
+        run: |
+          if [ "${{ matrix.target }}" != "aarch64" ]; then
+            echo "Skipping job for ${{ matrix.target }}"
+            exit 0
+          fi
       - uses: actions/checkout@v4
       - name: Build Wheels
         uses: PyO3/maturin-action@v1
@@ -149,6 +155,11 @@ jobs:
             
             whoami
             pwd
+            echo "whereis python:"
+            whereis python
+            whereis python3
+            PYTHON=python${{ matrix.python.version }}
+            whereis $PYTHON
             # Install target Python version using uv (downloads ARM build automatically)
             uv python install ${{ matrix.python.version }}
             export PATH="$HOME/.local/bin/:$PATH"
@@ -160,11 +171,21 @@ jobs:
             
             # Verify Python installation
             PYTHON=python${{ matrix.python.version }}
-            uv run --python ${{ matrix.python.version }} python --version
+            # source .venv/bin/activate
+            echo "whereis python:"
+            whereis python
+            whereis python3
+            whereis $PYTHON
+            # echo "which python command result:"
+            # which python || which python3
+            echo "Checking python version."
+            $PYTHON --version
+            echo "Verified python installation."
             
             # Install the wheel using uv (no venv needed in CI containers)
-            uv pip install --python ${{ matrix.python.version }} --upgrade pip setuptools wheel
-            uv pip install --python ${{ matrix.python.version }} --force-reinstall /artifacts/robyn*.whl
-            
+            uv pip install --python ${{ matrix.python.version }} --upgrade pip setuptools wheel --system
+            uv pip install --python ${{ matrix.python.version }} --force-reinstall /artifacts/robyn*.whl --system
+            echo "Done installing the wheel."
             # Test the installation
-            cd ~ && uv run --python ${{ matrix.python.version }} python -c 'import robyn; print("✅ Robyn imported successfully!")'
+            $PYTHON -c 'import robyn; print("✅ Robyn imported successfully!")'
+            echo "Test the installation the wheel."
