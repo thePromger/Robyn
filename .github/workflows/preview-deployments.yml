@@ -143,12 +143,19 @@ jobs:
             
             # Install uv
             curl -LsSf https://astral.sh/uv/install.sh | sh
-            export PATH="$HOME/.cargo/bin:$PATH"
-  
+            source $HOME/.local/bin/env
+            ls -lrth $HOME/.local/bin/
+            ls -lrth /root/.local/bin/
+            
+            whoami
+            pwd
             # Install target Python version using uv (downloads ARM build automatically)
             uv python install ${{ matrix.python.version }}
+            export PATH="$HOME/.local/bin/:$PATH"
+            
           run: |
-            export PATH="$HOME/.cargo/bin:$PATH"
+            source $HOME/.local/bin/env
+            # export PATH="$HOME/.local/bin/:$PATH"
             ls -lrth /artifacts
             
             # Verify Python installation
