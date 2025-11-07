@@ -1,6 +1,6 @@
 # CI to test Robyn on major Linux, MacOS and Windows
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
 name: Python Continuous integration
 

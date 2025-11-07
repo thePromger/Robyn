@@ -1,6 +1,6 @@
 # CI to build, test, format, and lint the Rust code
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
 name: Rust Continuous integration
 
