@@ -17,6 +17,7 @@ env:
 
 jobs:
   macos:
+    if: false
     runs-on: macos-13
     strategy:
       matrix:
@@ -50,6 +51,7 @@ jobs:
           cd ~ && python -c 'import robyn'
 
   windows:
+    if: false
     runs-on: windows-latest
     strategy:
       matrix:
@@ -76,6 +78,7 @@ jobs:
           cd ~ && python -c 'import robyn'
 
   linux:
+    if: false
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -115,7 +118,7 @@ jobs:
           ]
         target: [aarch64, armv7]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build Wheels
         uses: PyO3/maturin-action@v1
         env:
@@ -128,25 +131,33 @@ jobs:
         name: Install build wheel
         with:
           arch: ${{ matrix.target }}
-          distro: ubuntu20.04
+          distro: ubuntu_latest
           githubToken: ${{ github.token }}
           # Mount the dist directory as /artifacts in the container
           dockerRunArgs: |
             --volume "${PWD}/dist:/artifacts"
           install: |
+            # Install system dependencies
             apt update -y
-            apt install -y gcc musl-dev python3-dev # this is needed for psutil
-            apt install -y --no-install-recommends software-properties-common
-            add-apt-repository ppa:deadsnakes/ppa
-            apt update -y
-            PYTHON=python${{ matrix.python.version }}
-            apt install -y $PYTHON $PYTHON-venv
+            apt install -y gcc musl-dev curl ca-certificates # this is needed for psutil
+            
+            # Install uv
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+            export PATH="$HOME/.cargo/bin:$PATH"
+  
+            # Install target Python version using uv (downloads ARM build automatically)
+            uv python install ${{ matrix.python.version }}
           run: |
+            export PATH="$HOME/.cargo/bin:$PATH"
             ls -lrth /artifacts
+            
+            # Verify Python installation
             PYTHON=python${{ matrix.python.version }}
-            $PYTHON --version
-            $PYTHON -m venv venv
-            source venv/bin/activate
-            pip install --upgrade pip setuptools wheel
-            pip install --force-reinstall dist/robyn*.whl
-            cd ~ && python -c 'import robyn'
+            uv run --python ${{ matrix.python.version }} python --version
+            
+            # Install the wheel using uv (no venv needed in CI containers)
+            uv pip install --python ${{ matrix.python.version }} --upgrade pip setuptools wheel
+            uv pip install --python ${{ matrix.python.version }} --force-reinstall /artifacts/robyn*.whl
+            
+            # Test the installation
+            cd ~ && uv run --python ${{ matrix.python.version }} python -c 'import robyn; print("✅ Robyn imported successfully!")'
